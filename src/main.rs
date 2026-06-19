@@ -1,7 +1,7 @@
+use automotive_can::can_matrix::AbsWheelSpeeds;
 use socketcan::{CanDataFrame, CanFrame, CanSocket, EmbeddedFrame, Frame, Socket};
-use automotive_can::can_matrix::{AbsWheelSpeeds};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let socket  = CanSocket::open("vcan0")?;
+    let socket = CanSocket::open("vcan0")?;
     println!("Successfully bound to vcan0. Awaiting network payloads...");
 
     loop {
@@ -23,13 +23,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             wheel_speeds.rl_kmh(),
                             wheel_speeds.rr_kmh()
                         )
-                    },
+                    }
                     Err(e) => {
-                        eprintln!("[DIAG ERROR]: Malformed payload for ID: 0x{:X}: {:?}", id, e);
+                        eprintln!(
+                            "[DIAG ERROR]: Malformed payload for ID: 0x{:X}: {:?}",
+                            id, e
+                        );
                     }
                 }
             }
         }
     }
-
 }
