@@ -45,32 +45,33 @@ pub struct AbsWheelSpeeds {
 }
 
 impl AbsWheelSpeeds {
+    const SPEED_SCALING: f32 = 100.0;
     /// Decodes and returns the Front Left wheel speed formatted as a physical value in km/h.
     #[inline]
     #[must_use]
     pub fn fl_kmh(&self) -> f32 {
-        f32::from(self.fl) / 100.0
+        f32::from(self.fl) / Self::SPEED_SCALING
     }
 
     /// Decodes and returns the Front Right wheel speed formatted as a physical value in km/h.
     #[inline]
     #[must_use]
     pub fn fr_kmh(&self) -> f32 {
-        f32::from(self.fr) / 100.0
+        f32::from(self.fr) / Self::SPEED_SCALING
     }
 
     /// Decodes and returns the Rear Left wheel speed formatted as a physical value in km/h.
     #[inline]
     #[must_use]
     pub fn rl_kmh(&self) -> f32 {
-        f32::from(self.rl) / 100.0
+        f32::from(self.rl) / Self::SPEED_SCALING
     }
 
     /// Decodes and returns the Rear Right wheel speed formatted as a physical value in km/h.
     #[inline]
     #[must_use]
     pub fn rr_kmh(&self) -> f32 {
-        f32::from(self.rr) / 100.0
+        f32::from(self.rr) / Self::SPEED_SCALING
     }
 }
 
@@ -89,7 +90,10 @@ impl CanFrame for AbsWheelSpeeds {
             let rl_val = u16::from_be_bytes([*b4, *b5]);
             let rr_val = u16::from_be_bytes([*b6, *b7]);
 
-            if fl_val > 30000 || fr_val > 30000 || rl_val > 30000 || rr_val > 30000 {
+            const MAX_SPEED: u16 = 30000;
+
+            if fl_val > MAX_SPEED || fr_val > MAX_SPEED || rl_val > MAX_SPEED || rr_val > MAX_SPEED
+            {
                 return Err(CanError::SignalOutOfRange);
             }
 
