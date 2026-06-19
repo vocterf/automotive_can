@@ -84,13 +84,14 @@ impl CanFrame for AbsWheelSpeeds {
     where
         Self: Sized,
     {
+        const MAX_SPEED: u16 = 30000;
         if let [b0, b1, b2, b3, b4, b5, b6, b7, ..] = raw {
             let fl_val = u16::from_be_bytes([*b0, *b1]);
             let fr_val = u16::from_be_bytes([*b2, *b3]);
             let rl_val = u16::from_be_bytes([*b4, *b5]);
             let rr_val = u16::from_be_bytes([*b6, *b7]);
 
-            const MAX_SPEED: u16 = 30000;
+
 
             if fl_val > MAX_SPEED || fr_val > MAX_SPEED || rl_val > MAX_SPEED || rr_val > MAX_SPEED
             {
