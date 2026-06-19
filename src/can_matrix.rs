@@ -91,8 +91,6 @@ impl CanFrame for AbsWheelSpeeds {
             let rl_val = u16::from_be_bytes([*b4, *b5]);
             let rr_val = u16::from_be_bytes([*b6, *b7]);
 
-
-
             if fl_val > MAX_SPEED || fr_val > MAX_SPEED || rl_val > MAX_SPEED || rr_val > MAX_SPEED
             {
                 return Err(CanError::SignalOutOfRange);
