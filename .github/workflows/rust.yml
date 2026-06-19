@@ -1,0 +1,21 @@
+name: Rust Verification
+
+on: [push, pull_request]
+
+jobs:
+  check-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Verify Formatting
+        run: cargo fmt --check
+      - name: Compile & Check
+        run: cargo check
+      - name: Run Pedantic Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Execute Unit Tests
+        run: cargo test
