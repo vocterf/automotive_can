@@ -1,5 +1,5 @@
 use automotive_can::can_matrix::{AbsWheelSpeeds, CanFrame};
-use socketcan::{CanSocket, Frame, Socket};
+use socketcan::{CanSocket, EmbeddedFrame, Frame, Socket};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
