@@ -11,6 +11,6 @@ This project is strictly separated into two distinct operational layers:
 ## Current Project State
 
 - [x] Define global `CanError` handling and core validation traits under `#![no_std]`.
-- [ ] Implement `AbsWheelSpeeds` (ID: `0x215`) serialization & deserialization with Big-Endian alignment.
+- [x] Implement `AbsWheelSpeeds` (ID: `0x215`) serialization & deserialization with Big-Endian alignment.
 - [ ] Integrate the matrix parser into the Linux SocketCAN active receiver loop.
 - [ ] Add functional boundary testing for signal validation.

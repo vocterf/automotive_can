@@ -6,10 +6,10 @@
 /// Diagnostic errors that can occur during the serialization or deserialization of network data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CanError {
-    /// Recevied payload buffer size is strictly smaller than frame's DLC.
+    /// Received payload buffer size is strictly smaller than frame's DLC.
     BufferTooSmall,
-    /// One or more decoded singals violate the strictly defined physical boundaries.
-    SingalOutOfRange,
+    /// One or more decoded signals violate the strictly defined physical boundaries.
+    SignalOutOfRange,
 }
 
 /// #### CAN Frame Trait
@@ -24,10 +24,102 @@ pub trait CanFrame {
     fn to_bytes(&self) -> [u8; 8];
 
     /// Deserializes a raw network byte slice into a validated, type-safe structure.
+    ///
     /// ### Errors
     /// * Returns `CanError::BufferTooSmall` if the provided slice length is strictly smaller than the frame's DLC.
     /// * Returns `CanError::SignalOutOfRange` if any parsed signal violates the physical boundaries.
     fn from_bytes(raw: &[u8]) -> Result<Self, CanError>
     where
         Self: Sized;
+}
+
+/// ### ID: `0x215` | `ABS_Wheel_Speeds`
+/// Broadcasted by the ABS/ESP Controller every 10ms.
+/// Contains high-precision, big-endian physical wheel speeds for all four corners of the vehicle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AbsWheelSpeeds {
+    fl: u16,
+    fr: u16,
+    rl: u16,
+    rr: u16,
+}
+
+impl AbsWheelSpeeds {
+    /// Decodes and returns the Front Left wheel speed formatted as a physical value in km/h.
+    #[inline]
+    #[must_use]
+    pub fn fl_kmh(&self) -> f32 {
+        f32::from(self.fl) / 100.0
+    }
+
+    /// Decodes and returns the Front Right wheel speed formatted as a physical value in km/h.
+    #[inline]
+    #[must_use]
+    pub fn fr_kmh(&self) -> f32 {
+        f32::from(self.fr) / 100.0
+    }
+
+    /// Decodes and returns the Rear Left wheel speed formatted as a physical value in km/h.
+    #[inline]
+    #[must_use]
+    pub fn rl_kmh(&self) -> f32 {
+        f32::from(self.rl) / 100.0
+    }
+
+    /// Decodes and returns the Rear Right wheel speed formatted as a physical value in km/h.
+    #[inline]
+    #[must_use]
+    pub fn rr_kmh(&self) -> f32 {
+        f32::from(self.rr) / 100.0
+    }
+}
+
+impl CanFrame for AbsWheelSpeeds {
+    const ID: u32 = 0x215;
+    const DLC: usize = 8;
+
+    #[inline]
+    fn from_bytes(raw: &[u8]) -> Result<Self, CanError>
+    where
+        Self: Sized,
+    {
+        if let [b0, b1, b2, b3, b4, b5, b6, b7, ..] = raw {
+            let fl_val = u16::from_be_bytes([*b0, *b1]);
+            let fr_val = u16::from_be_bytes([*b2, *b3]);
+            let rl_val = u16::from_be_bytes([*b4, *b5]);
+            let rr_val = u16::from_be_bytes([*b6, *b7]);
+
+            if fl_val > 30000 || fr_val > 30000 || rl_val > 30000 || rr_val > 30000 {
+                return Err(CanError::SignalOutOfRange);
+            }
+
+            Ok(Self {
+                fl: fl_val,
+                fr: fr_val,
+                rl: rl_val,
+                rr: rr_val,
+            })
+        } else {
+            Err(CanError::BufferTooSmall)
+        }
+    }
+
+    #[inline]
+    fn to_bytes(&self) -> [u8; 8] {
+        let fl_bytes = self.fl.to_be_bytes();
+        let fr_bytes = self.fr.to_be_bytes();
+        let rl_bytes = self.rl.to_be_bytes();
+        let rr_bytes = self.rr.to_be_bytes();
+
+        [
+            fl_bytes[0],
+            fl_bytes[1],
+            fr_bytes[0],
+            fr_bytes[1],
+            rl_bytes[0],
+            rl_bytes[1],
+            rr_bytes[0],
+            rr_bytes[1],
+        ]
+    }
 }
