@@ -12,5 +12,21 @@ This project is strictly separated into two distinct operational layers:
 
 - [x] Define global `CanError` handling and core validation traits under `#![no_std]`.
 - [x] Implement `AbsWheelSpeeds` (ID: `0x215`) serialization & deserialization with Big-Endian alignment.
-- [ ] Integrate the matrix parser into the Linux SocketCAN active receiver loop.
-- [ ] Add functional boundary testing for signal validation.
+- [x] Integrate the matrix parser into the Linux SocketCAN active receiver loop.
+- [x] Add functional boundary testing for signal validation.
+
+---
+
+## Next Milestones
+
+### Phase 2: Multi-Frame Network Demultiplexing
+- Implement `EngineData` (ID: `0x110`, DLC: 4) frame parsing (`rpm` and `pedal_position`).
+- Refactor `src/main.rs` into a zero-allocation network demultiplexer supporting multi-ID decoding.
+
+### Phase 3: Software-in-the-loop Integration
+- [ ] Establish communication link between the Rust telemetry binary and Webots vehicle simulation environment.
+- [ ] Broadcast real-time virtual vehicle telemetry over the Linux `vcan0` interface.
+
+### Phase 4: Closed-Loop Control Architecture
+- [ ] Implement an Autonomoous Emergency Brakiung safety algorithm within the Rust core module.
+- [ ] Transmit `BrakeCommand` frames back to the simulation loop to dynamically actuate the vehicle platform based on boundary limits.
