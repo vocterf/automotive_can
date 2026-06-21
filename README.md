@@ -24,8 +24,8 @@ This project is strictly separated into two distinct operational layers:
 - [x] Refactor `src/main.rs` into a zero-allocation network demultiplexer supporting multi-ID decoding.
 
 ### Phase 3: Software-in-the-loop Integration
-- [ ] Establish communication link between the Rust telemetry binary and Webots vehicle simulation environment.
-- [ ] Broadcast real-time virtual vehicle telemetry over the Linux `vcan0` interface.
+- [x] Establish communication link between the Rust telemetry binary and Webots vehicle simulation environment.
+- [x] Broadcast real-time virtual vehicle telemetry over the Linux `vcan0` interface.
 
 ### Phase 4: Closed-Loop Control Architecture
 - [ ] Implement an Autonomoous Emergency Brakiung safety algorithm within the Rust core module.
