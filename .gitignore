@@ -1,3 +1,21 @@
+# --- RUST ---
 /target
 **/*.rs.bk
-Cargo.lock
+
+# --- WEBOTS / C ---
+*.o
+*.so
+*.dylib
+*.dll
+*.d
+build/
+bin/
+
+# --- IDE / SYSTEM ---
+.vscode/
+.idea/
+.DS_Store
+*.log
+*.tmp
+tmp/
+*.swp

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     https://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,7 @@
  */
 
 /*
- * Description:   Autonoumous vehicle controller example
+ * Description:   Autonomous vehicle controller example with Linux SocketCAN SIL telemetry
  */
 
 #include <webots/camera.h>
@@ -26,6 +26,7 @@
 #include <webots/lidar.h>
 #include <webots/robot.h>
 #include <webots/vehicle/driver.h>
+#include "can_telemetry.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -47,7 +48,7 @@ bool PID_need_reset = false;
 // Size of the yellow line angle filter
 #define FILTER_SIZE 3
 
-// enabe various 'features'
+// enable various 'features'
 bool enable_collision_avoidance = false;
 bool enable_display = false;
 bool has_gps = false;
@@ -184,6 +185,8 @@ int color_diff(const unsigned char a[3], const unsigned char b[3]) {
 // returns approximate angle of yellow road line
 // or UNKNOWN if no pixel of yellow line visible
 double process_camera_image(const unsigned char *image) {
+  if (image == NULL) return UNKNOWN; // Pancerne zabezpieczenie przed pustym buforem kadru
+
   int num_pixels = camera_height * camera_width;  // number of pixels in the image
   const unsigned char REF[3] = {95, 187, 203};    // road yellow (BGR format)
   int sumx = 0;                                   // summed x position of pixels
@@ -234,6 +237,8 @@ double filter_angle(double new_value) {
 // returns approximate angle of obstacle
 // or UNKNOWN if no obstacle was detected
 double process_sick_data(const float *sick_data, double *obstacle_dist) {
+  if (sick_data == NULL) return UNKNOWN;
+
   const int HALF_AREA = 20;  // check 20 degrees wide middle area
   int sumx = 0;
   int collision_count = 0;
@@ -281,6 +286,8 @@ void update_display() {
 
 void compute_gps_speed() {
   const double *coords = wb_gps_get_values(gps);
+  if (coords == NULL) return; // Defensywne wyjście, gdyby GPS nie zwrócił współrzędnych
+
   const double speed_ms = wb_gps_get_speed(gps);
   // store into global variables
   gps_speed = speed_ms * 3.6;  // convert from m/s to km/h
@@ -312,6 +319,7 @@ double applyPID(double yellow_line_angle) {
 }
 
 int main(int argc, char **argv) {
+
   wbu_driver_init();
 
   // check if there is a SICK and a display
@@ -367,6 +375,9 @@ int main(int argc, char **argv) {
   wbu_driver_set_antifog_lights(true);
   wbu_driver_set_wiper_mode(SLOW);
 
+  // Inicjalizacja Linux SocketCAN dla telemetrii SIL
+  int can_socket = can_telemetry_init("vcan0");
+
   print_help();
 
   // allow to switch to manual control
@@ -388,11 +399,12 @@ int main(int argc, char **argv) {
       if (enable_collision_avoidance)
         sick_data = wb_lidar_get_range_image(sick);
 
-      if (autodrive && has_camera) {
+      // Bezpieczna ochrona przed brakiem klatek na starcie symulacji
+      if (autodrive && has_camera && camera_image != NULL) {
         double yellow_line_angle = filter_angle(process_camera_image(camera_image));
         double obstacle_dist;
         double obstacle_angle;
-        if (enable_collision_avoidance)
+        if (enable_collision_avoidance && sick_data != NULL)
           obstacle_angle = process_sick_data(sick_data, &obstacle_dist);
         else {
           obstacle_angle = UNKNOWN;
@@ -433,10 +445,34 @@ int main(int argc, char **argv) {
       }
 
       // update stuff
-      if (has_gps)
-        compute_gps_speed();
+      if (has_gps) {
+        const double *coords = wb_gps_get_values(gps);
+        if (coords != NULL) {
+          compute_gps_speed();
+        }
+      }
       if (enable_display)
         update_display();
+
+      // Transmisja sieciowa CAN zsynchronizowana z taktowaniem czujników (TIME_STEP)
+      if (can_socket >= 0) {
+        double current_speed = wbu_driver_get_current_speed();
+        if (isnan(current_speed) || current_speed < 0.0) {
+          current_speed = 0.0;
+        }
+
+        // Matematyczna emulacja obrotów na podstawie prędkości pojazdu
+        uint16_t simulated_rpm = 800 + (uint16_t)(current_speed * 60.0);
+        if (simulated_rpm > 6500) simulated_rpm = 6500;
+
+        // Obliczanie położenia pedału gazu w stosunku do oczekiwanej prędkości docelowej
+        uint8_t simulated_pedal = (speed > 0.0) ? (uint8_t)((current_speed / speed) * 100.0) : 0;
+        if (simulated_pedal > 100) simulated_pedal = 100;
+
+        // Wypychanie gotowych ramek na vcan0 w formacie Motorola (Big-Endian)
+        can_send_engine_data(can_socket, simulated_rpm, simulated_pedal);
+        can_send_wheel_speeds(can_socket, current_speed, current_speed, current_speed, current_speed);
+      }
     }
 
     ++i;
