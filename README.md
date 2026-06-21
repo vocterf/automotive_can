@@ -20,8 +20,8 @@ This project is strictly separated into two distinct operational layers:
 ## Next Milestones
 
 ### Phase 2: Multi-Frame Network Demultiplexing
-- Implement `EngineData` (ID: `0x110`, DLC: 4) frame parsing (`rpm` and `pedal_position`).
-- Refactor `src/main.rs` into a zero-allocation network demultiplexer supporting multi-ID decoding.
+- [x] Implement `EngineData` (ID: `0x110`, DLC: 4) frame parsing (`rpm` and `pedal_position`).
+- [ ] Refactor `src/main.rs` into a zero-allocation network demultiplexer supporting multi-ID decoding.
 
 ### Phase 3: Software-in-the-loop Integration
 - [ ] Establish communication link between the Rust telemetry binary and Webots vehicle simulation environment.
