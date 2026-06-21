@@ -36,6 +36,14 @@ pub trait CanFrame {
 /// ### ID: `0x215` | `ABS_Wheel_Speeds`
 /// Broadcasted by the ABS/ESP Controller every 10ms.
 /// Contains high-precision, big-endian physical wheel speeds for all four corners of the vehicle.
+///
+/// #### Signal Specifications:
+/// | Signal Name | Start Bit | Length | Byte Order | Value Type | Factor | Offset | Range / Unit |
+/// | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+/// | `fl_speed` | bit 0 | 16 bits | Motorola (BE) | Unsigned | 0.01 | 0 | 0.00 - 300.00 km/h |
+/// | `fr_speed` | bit 16 | 16 bits | Motorola (BE) | Unsigned | 0.01 | 0 | 0.00 - 300.00 km/h |
+/// | `rl_speed` | bit 32 | 16 bits | Motorola (BE) | Unsigned | 0.01 | 0 | 0.00 - 300.00 km/h |
+/// | `rr_speed` | bit 48 | 16 bits | Motorola (BE) | Unsigned | 0.01 | 0 | 0.00 - 300.00 km/h |
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AbsWheelSpeeds {
     fl: u16,
@@ -46,6 +54,7 @@ pub struct AbsWheelSpeeds {
 
 impl AbsWheelSpeeds {
     const SPEED_SCALING: f32 = 100.0;
+
     /// Decodes and returns the Front Left wheel speed formatted as a physical value in km/h.
     #[inline]
     #[must_use]
@@ -123,6 +132,81 @@ impl CanFrame for AbsWheelSpeeds {
             rl_bytes[1],
             rr_bytes[0],
             rr_bytes[1],
+        ]
+    }
+}
+
+/// ### ID: `0x110` | `EngineData`
+/// Broadcasted by the Powertrain Control Module (PCM).
+/// Contains engine rotational speed (RPM) and real-time accelerator pedal position.
+///
+/// #### Signal Specifications:
+/// | Signal Name | Start Bit | Length | Byte Order | Value Type | Factor | Offset | Range / Unit |
+/// | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+/// | `rpm` | bit 0 | 16 bits | Motorola (BE) | Unsigned | 1.0 | 0 | 0 - 8000 RPM |
+/// | `pedal_position` | bit 16 | 8 bits | Motorola (BE) | Unsigned | 1.0 | 0 | 0 - 100 % |
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EngineData {
+    rpm: u16,
+    pedal_position: u8,
+}
+
+impl EngineData {
+    /// Returns the current engine speed in Revolutions Per Minute (RPM).
+    #[inline]
+    #[must_use]
+    pub fn rpm(&self) -> u16 {
+        self.rpm
+    }
+
+    /// Returns the accelerator pedal position as a percentage scaled from 0 to 100.
+    #[inline]
+    #[must_use]
+    pub fn pedal_position(&self) -> u8 {
+        self.pedal_position
+    }
+}
+
+impl CanFrame for EngineData {
+    const ID: u32 = 0x110;
+    const DLC: usize = 3;
+
+    #[inline]
+    fn from_bytes(raw: &[u8]) -> Result<Self, CanError>
+    where
+        Self: Sized,
+    {
+        const MAX_RPM: u16 = 8000;
+        const MAX_PEDAL: u8 = 100;
+        if let [b0, b1, b2, ..] = raw {
+            let rpm_val = u16::from_be_bytes([*b0, *b1]);
+            let pedal_val = *b2;
+
+            if rpm_val > MAX_RPM || pedal_val > MAX_PEDAL {
+                return Err(CanError::SignalOutOfRange);
+            }
+
+            Ok(Self {
+                rpm: rpm_val,
+                pedal_position: pedal_val,
+            })
+        } else {
+            Err(CanError::BufferTooSmall)
+        }
+    }
+
+    #[inline]
+    fn to_bytes(&self) -> [u8; 8] {
+        let rpm_bytes = self.rpm.to_be_bytes();
+        [
+            rpm_bytes[0],
+            rpm_bytes[1],
+            self.pedal_position,
+            0,
+            0,
+            0,
+            0,
+            0,
         ]
     }
 }
