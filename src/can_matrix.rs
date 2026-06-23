@@ -210,3 +210,81 @@ impl CanFrame for EngineData {
         ]
     }
 }
+
+/// ### ID: `0x300` | `ADAS_Sensor_Data`
+/// Transmitted by the Autonomous Driving Sensor Suite (Lidar/Radar controller).
+/// Contains the vehicle's current filtered speed and the exact distance to the nearest forward obstacle.
+///
+/// #### Signal Specifications:
+/// | Signal Name | Start Bit | Length | Byte Order | Value Type | Factor | Offset | Range / Unit |
+/// | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+/// | `current_speed` | bit 0 | 8 bits | Motorola (BE) | Unsigned | 1.0 | 0 | 0 - 250 km/h |
+/// | `obstacle_dist` | bit 8 | 16 bits | Motorola (BE) | Unsigned | 1.0 | 0 | 0 - 20000 cm |
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AdasSensorFrame {
+    /// Current speed of the vehicle.
+    pub current_speed: u8,
+    /// Distance from the nearest forward obstacle.
+    pub obstacle_dist: u16,
+}
+
+impl AdasSensorFrame {
+    /// Returns the current vehicle speed in km/h.
+    #[inline]
+    #[must_use]
+    pub fn current_speed_kmh(&self) -> u8 {
+        self.current_speed
+    }
+
+    /// Returns the distance to the obstacle expressed in centimeters.
+    #[inline]
+    #[must_use]
+    pub fn obstacle_dist_cm(&self) -> u16 {
+        self.obstacle_dist
+    }
+}
+
+impl CanFrame for AdasSensorFrame {
+    const ID: u32 = 0x300;
+    const DLC: usize = 3;
+
+    #[inline]
+    fn from_bytes(raw: &[u8]) -> Result<Self, CanError>
+    where
+        Self: Sized,
+    {
+        const MAX_DIST: u16 = 20000; // 200 metrów w centymetrach
+        const MAX_SPEED: u8 = 250;
+
+        if let [b0, b1, b2, ..] = raw {
+            let current_speed = *b0;
+            let obstacle_dist = u16::from_be_bytes([*b1, *b2]);
+
+            if current_speed > MAX_SPEED || obstacle_dist > MAX_DIST {
+                return Err(CanError::SignalOutOfRange);
+            }
+
+            Ok(Self {
+                current_speed,
+                obstacle_dist,
+            })
+        } else {
+            Err(CanError::BufferTooSmall)
+        }
+    }
+
+    #[inline]
+    fn to_bytes(&self) -> [u8; 8] {
+        let obstacle_bytes = self.obstacle_dist.to_be_bytes();
+        [
+            self.current_speed,
+            obstacle_bytes[0],
+            obstacle_bytes[1],
+            0,
+            0,
+            0,
+            0,
+            0,
+        ]
+    }
+}

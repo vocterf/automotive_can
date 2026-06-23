@@ -5,3 +5,4 @@
 #![deny(clippy::pedantic)]
 #![allow(clippy::similar_names)]
 pub mod can_matrix;
+pub mod core;
