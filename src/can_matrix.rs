@@ -253,7 +253,7 @@ impl CanFrame for AdasSensorFrame {
     where
         Self: Sized,
     {
-        const MAX_DIST: u16 = 20000; // 200 metrów w centymetrach
+        const MAX_DIST: u16 = 20000; // 20 meters (20000cm)
         const MAX_SPEED: u8 = 250;
 
         if let [b0, b1, b2, ..] = raw {
@@ -289,7 +289,6 @@ impl CanFrame for AdasSensorFrame {
     }
 }
 
-
 /// ### ID: `0x200` | `AEB_Brake_Command`
 /// Broadcasted by the ADAS Safety Core module to the Electronic Stability Control (ESC/ABS).
 /// Demands immediate deceleration interventions based on critical Time-To-Collision (TTC) calculations.
@@ -300,6 +299,7 @@ impl CanFrame for AdasSensorFrame {
 /// | `brake_intensity` | bit 0 | 8 bits | Motorola (BE) | Unsigned | 1.0 | 0 | 0 - 100 % |
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AebCommandsFrame {
+    /// Brake pedal intensity in percentage from 0 to 100.
     pub brake_intensity: u8,
 }
 
@@ -336,15 +336,6 @@ impl CanFrame for AebCommandsFrame {
 
     #[inline]
     fn to_bytes(&self) -> [u8; 8] {
-        [
-            self.brake_intensity,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-        ]
+        [self.brake_intensity, 0, 0, 0, 0, 0, 0, 0]
     }
 }

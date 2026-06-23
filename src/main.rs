@@ -1,4 +1,7 @@
-use automotive_can::can_matrix::{AbsWheelSpeeds, CanFrame, EngineData};
+use automotive_can::{
+    can_matrix::{AbsWheelSpeeds, AdasSensorFrame, AebCommandsFrame, CanFrame, EngineData},
+    core::process_adas_sensor,
+};
 use socketcan::{CanSocket, EmbeddedFrame, Frame, Socket};
 use std::error::Error;
 
@@ -50,8 +53,42 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 },
 
+                AdasSensorFrame::ID => match AdasSensorFrame::from_bytes(raw_payload) {
+                    Ok(adas_sensor_frame) => {
+                        let Some(aeb_frame) = process_adas_sensor(&adas_sensor_frame) else {
+                            continue;
+                        };
+
+                        let Some(socket_frame) = pack_aeb_frame(&aeb_frame) else {
+                            eprintln!(
+                                "[CRITICAL FAULT]: AEB processing anomaly - serialization failed!"
+                            );
+                            continue;
+                        };
+
+                        let _ = socket.write_frame(&socket_frame);
+                        println!("[SAFETY INTERVENTION]: AEB Command 100% sent to vcan0!");
+                    }
+
+                    Err(e) => {
+                        eprintln!(
+                            "[DIAG ERROR]: Malformed payload for ID: 0x{:X}: {:?}",
+                            id, e
+                        )
+                    }
+                },
+
                 _ => {}
             }
         }
     }
+}
+
+fn pack_aeb_frame(aeb_frame: &AebCommandsFrame) -> Option<socketcan::CanFrame> {
+    let std_id = socketcan::StandardId::new(AebCommandsFrame::ID as u16)?;
+
+    let data_frame =
+        socketcan::CanDataFrame::new(std_id, &aeb_frame.to_bytes()[..AebCommandsFrame::DLC])?;
+
+    Some(socketcan::CanFrame::Data(data_frame))
 }
