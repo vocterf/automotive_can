@@ -64,13 +64,12 @@ void can_send_wheel_speeds(int socket_fd, double fl_kmh, double fr_kmh, double r
     frame.can_id = 0x215;
     frame.can_dlc = 8;
 
-    // Skalowanie wartości fizycznych (f32 * 100.0) do surowego u16
     uint16_t fl_raw = (uint16_t)(fl_kmh * 100.0);
     uint16_t fr_raw = (uint16_t)(fr_kmh * 100.0);
     uint16_t rl_raw = (uint16_t)(rl_kmh * 100.0);
     uint16_t rr_raw = (uint16_t)(rr_kmh * 100.0);
 
-    // Big-Endian (Motorola) bit packing dla wszystkich 4 kół
+    // Big-Endian (Motorola) bit packing
     frame.data[0] = (fl_raw >> 8) & 0xFF; frame.data[1] = fl_raw & 0xFF;
     frame.data[2] = (fr_raw >> 8) & 0xFF; frame.data[3] = fr_raw & 0xFF;
     frame.data[4] = (rl_raw >> 8) & 0xFF; frame.data[5] = rl_raw & 0xFF;
