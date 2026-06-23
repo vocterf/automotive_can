@@ -288,3 +288,63 @@ impl CanFrame for AdasSensorFrame {
         ]
     }
 }
+
+
+/// ### ID: `0x200` | `AEB_Brake_Command`
+/// Broadcasted by the ADAS Safety Core module to the Electronic Stability Control (ESC/ABS).
+/// Demands immediate deceleration interventions based on critical Time-To-Collision (TTC) calculations.
+///
+/// #### Signal Specifications:
+/// | Signal Name | Start Bit | Length | Byte Order | Value Type | Factor | Offset | Range / Unit |
+/// | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+/// | `brake_intensity` | bit 0 | 8 bits | Motorola (BE) | Unsigned | 1.0 | 0 | 0 - 100 % |
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AebCommandsFrame {
+    pub brake_intensity: u8,
+}
+
+impl AebCommandsFrame {
+    /// Returns the demanded brake intensity as a physical percentage value (0 to 100%).
+    #[inline]
+    #[must_use]
+    pub fn brake_intensity_percentage(&self) -> u8 {
+        self.brake_intensity
+    }
+}
+
+impl CanFrame for AebCommandsFrame {
+    const ID: u32 = 0x200;
+    const DLC: usize = 1;
+
+    #[inline]
+    fn from_bytes(raw: &[u8]) -> Result<Self, CanError>
+    where
+        Self: Sized,
+    {
+        const MAX_BRAKE_INTENSITY: u8 = 100;
+        if let [b0, ..] = raw {
+            let brake_intensity = *b0;
+            if brake_intensity > MAX_BRAKE_INTENSITY {
+                return Err(CanError::SignalOutOfRange);
+            }
+
+            Ok(Self { brake_intensity })
+        } else {
+            Err(CanError::BufferTooSmall)
+        }
+    }
+
+    #[inline]
+    fn to_bytes(&self) -> [u8; 8] {
+        [
+            self.brake_intensity,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ]
+    }
+}
