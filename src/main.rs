@@ -92,3 +92,53 @@ fn pack_aeb_frame(aeb_frame: &AebCommandsFrame) -> Option<socketcan::CanFrame> {
 
     Some(socketcan::CanFrame::Data(data_frame))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use socketcan::Frame;
+
+    #[test]
+    fn test_abs_wheel_speeds_bridge_to_socketcan() {
+        let test_speeds = AbsWheelSpeeds::from_bytes(&[
+            (5000 >> 8) as u8,
+            (5000 & 0xFF) as u8, // FL
+            (5000 >> 8) as u8,
+            (5000 & 0xFF) as u8, // FR
+            (5000 >> 8) as u8,
+            (5000 & 0xFF) as u8, // RL
+            (5000 >> 8) as u8,
+            (5000 & 0xFF) as u8, // RR
+        ])
+        .unwrap();
+
+        let std_id = socketcan::StandardId::new(AbsWheelSpeeds::ID as u16).unwrap();
+        let data_frame = socketcan::CanDataFrame::new(std_id, &test_speeds.to_bytes()).unwrap();
+        let final_frame = socketcan::CanFrame::Data(data_frame);
+
+        assert_eq!(final_frame.raw_id(), AbsWheelSpeeds::ID);
+        assert_eq!(final_frame.data().len(), 8);
+
+        let decoded = AbsWheelSpeeds::from_bytes(final_frame.data()).unwrap();
+
+        assert_eq!(decoded.fl_kmh(), 50.00);
+        assert_eq!(decoded.fr_kmh(), 50.00);
+        assert_eq!(decoded.rl_kmh(), 50.00);
+        assert_eq!(decoded.rr_kmh(), 50.00);
+    }
+
+    #[test]
+    fn test_pack_aeb_frame_helper_success() {
+        let aeb_command = AebCommandsFrame {
+            brake_intensity: 100,
+        };
+
+        let packed_result = pack_aeb_frame(&aeb_command);
+
+        assert!(packed_result.is_some());
+        let socket_frame = packed_result.unwrap();
+
+        assert_eq!(socket_frame.raw_id(), AebCommandsFrame::ID);
+        assert_eq!(socket_frame.data(), &[100]);
+    }
+}

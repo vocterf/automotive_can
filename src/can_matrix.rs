@@ -46,10 +46,14 @@ pub trait CanFrame {
 /// | `rr_speed` | bit 48 | 16 bits | Motorola (BE) | Unsigned | 0.01 | 0 | 0.00 - 300.00 km/h |
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AbsWheelSpeeds {
-    fl: u16,
-    fr: u16,
-    rl: u16,
-    rr: u16,
+    /// Front left wheel speed.
+    pub fl: u16,
+    /// Front right wheel speed.
+    pub fr: u16,
+    /// Rear left wheel speed.
+    pub rl: u16,
+    /// Rear right wheel speed.
+    pub rr: u16,
 }
 
 impl AbsWheelSpeeds {
